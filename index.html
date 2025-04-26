@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>IP Changer & History - Real Time IP Checker</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!-- Tailwind CSS v2.2.19 -->
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+  <!-- Font Awesome v6.5.2 -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.5.2/css/all.min.css">
+  <!-- Google Fonts: Roboto -->
+  <link href="https://cdn.jsdelivr.net/npm/@google/fonts@3.3.1/roboto.css" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Roboto', Arial, sans-serif;
+      background-color: #fafafa;
+      color: #222;
+      overflow-y: unset !important;
+    }
+    .md-shadow {
+      box-shadow: 0 1px 6px rgba(60, 60, 60, 0.15),0 1.5px 5px rgba(81, 81, 81, 0.06);
+    }
+    .scrollbar-hide {
+      overflow: visible !important;
+      max-height: unset !important;
+    }
+    .modal-bg {
+      background: rgba(0,0,0,0.38);
+    }
+  </style>
+</head>
+<body>
+  <!-- Header -->
+  <header class="bg-yellow-400 md-shadow py-5 px-4 flex items-center justify-between">
+    <div class="flex items-center space-x-2">
+      <i class="fas fa-random text-2xl text-gray-800"></i>
+      <span class="text-2xl font-bold text-gray-900 tracking-wide">IP Changer + History</span>
+    </div>
+    <nav class="flex items-center space-x-3">
+      <button id="delete-history-btn" class="bg-white hover:bg-yellow-100 text-yellow-600 px-3 py-1 rounded transition-colors duration-150 flex items-center text-sm focus:outline-none">
+        <i class="fas fa-trash-alt mr-1"></i> Delete History
+      </button>
+      <button id="exit-btn" class="bg-white hover:bg-yellow-100 text-yellow-700 px-3 py-1 rounded transition-colors duration-150 flex items-center text-sm focus:outline-none">
+        <i class="fas fa-sign-out-alt mr-1"></i> Exit
+      </button>
+    </nav>
+  </header>
+
+  <!-- Main content -->
+  <main class="max-w-2xl mx-auto mt-8 px-4 mb-8">
+    <!-- Current IP -->
+    <section class="bg-white rounded-lg md-shadow p-6 flex flex-col items-start mb-7">
+      <h2 class="text-md font-medium text-gray-700 mb-2 flex items-center">
+        <i class="fas fa-globe mr-2 text-yellow-400"></i> Current IP:
+      </h2>
+      <div class="w-full flex items-center justify-between">
+        <span id="current-ip" class="text-3xl font-mono font-bold text-gray-900 tracking-wide select-all">...</span>
+        <button id="refresh-ip-btn" title="Refresh IP" class="ml-3 p-2 rounded-full bg-yellow-100 text-yellow-800 hover:bg-yellow-200 transition-colors">
+          <i class="fas fa-sync-alt"></i>
+        </button>
+      </div>
+      <div id="ip-location" class="text-sm text-gray-600 mt-2"></div>
+      <button id="change-ip-btn" class="mt-6 px-5 py-2 bg-yellow-400 text-gray-900 rounded font-semibold shadow hover:bg-yellow-300 transition-colors text-lg flex items-center focus:outline-none">
+        <i class="fas fa-random mr-2 text-lg"></i> Change IP Address
+      </button>
+    </section>
+    <!-- IP History -->
+    <section class="bg-white rounded-lg md-shadow p-6">
+      <h2 class="text-md font-medium text-gray-700 mb-4 flex items-center">
+        <i class="fas fa-history mr-2 text-yellow-400"></i> IP Address Change History
+      </h2>
+      <div id="history-empty" class="text-gray-400 text-sm mb-4" style="display: none;">
+        No IP changes yet. Click <span class="font-semibold">Change IP Address</span> to start tracking!
+      </div>
+      <ol id="history-list" class="scrollbar-hide max-h-96 overflow-auto" reversed>
+        <!-- History entries injected by JS -->
+      </ol>
+      <div class="mt-2 text-xs text-gray-400">
+        List contains up to 50 recent entries. Data is stored in your browser only.
+      </div>
+    </section>
+    <!-- Modal for Airplane Mode Guidance -->
+    <div id="modal-airplane" class="fixed z-50 inset-0 flex items-center justify-center hidden">
+      <div class="absolute inset-0 modal-bg"></div>
+      <div class="bg-white w-full max-w-lg rounded-lg md-shadow p-6 relative z-10">
+        <button class="absolute top-2 right-2 text-gray-400 hover:text-yellow-500 text-xl" onclick="document.getElementById('modal-airplane').classList.add('hidden')" aria-label="Close Modal"><i class="fas fa-times"></i></button>
+        <h3 class="text-lg font-semibold mb-3 flex items-center text-yellow-600"><i class="fas fa-plane mr-2"></i> Airplane Mode Guidance</h3>
+        <div id="modal-airplane-device" class="text-gray-800 text-sm leading-relaxed mb-3"></div>
+        <ul class="list-disc pl-6 mb-3 text-gray-700 text-sm leading-relaxed" id="modal-airplane-message"></ul>
+        <div class="border border-yellow-300 bg-yellow-50 rounded p-3 text-xs text-yellow-700 flex items-start">
+          <i class="fas fa-exclamation-triangle mr-2 mt-0.5"></i>
+          <span>
+          If the settings didn't open automatically, please open your <b>Airplane Mode</b> setting on your mobile (<b>Swipe down</b> and tap <i class="fas fa-plane"></i> airplane icon, or open your device's Settings). <br>
+          After toggling airplane mode, return here and tap "Change IP Address" again to log the new IP.<br>
+          <span class="hidden md:inline">On desktop browsers this feature can only simulate an IP change and won't open network settings.</span>
+          </span>
+        </div>
+        <button onclick="document.getElementById('modal-airplane').classList.add('hidden')" class="mt-4 px-4 py-1 rounded bg-yellow-400 text-gray-900 font-semibold hover:bg-yellow-300">Close</button>
+      </div>
+    </div>
+  </main>
+
+  <!-- Footer -->
+  <footer class="mt-8 mb-4 text-gray-400 text-xs text-center">
+    &copy; 2024 IP Changer + History &ndash; Web Version Demo | Inspired by IP Changer History Android App.<br>
+    Icons by <a href="https://fontawesome.com/" target="_blank" class="underline hover:text-yellow-700">Font Awesome</a>. UI by <a href="https://tailwindcss.com/" target="_blank" class="underline hover:text-yellow-700">Tailwind CSS</a>.
+  </footer>
+
+  <script>
+    // Utilities
+    const STORAGE_KEY = 'ip_changer_history';
+    // App State
+    let history = [];
+    let currentIP = '';
+    let currentLoc = '';
+
+    // Helpers
+    function loadHistory() {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (!raw) return [];
+      try {
+        return JSON.parse(raw) || [];
+      } catch(e) { return []; }
+    }
+    function saveHistory(histArr) {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(histArr.slice(0,50)));
+    }
+    function nowTimestamp() {
+      const now = new Date();
+      return now.getFullYear() + '/' +
+        String(now.getMonth()+1).padStart(2,'0') + '/' +
+        String(now.getDate()).padStart(2,'0') + ' ' +
+        String(now.getHours()).padStart(2,'0') + ':' +
+        String(now.getMinutes()).padStart(2,'0') + ':' +
+        String(now.getSeconds()).padStart(2,'0');
+    }
+    async function fetchIP() {
+      try {
+        const resp = await fetch("https://ipinfo.io/json", {cache:"no-store"});
+        const data = await resp.json();
+        return {
+          ip: data.ip || 'Unknown',
+          location: [
+            data.city || '',
+            data.region || '',
+            data.country || ''
+          ].filter(Boolean).join(', ')
+        };
+      } catch(e) {
+        return { ip: 'Unavailable', location: ''};
+      }
+    }
+    function renderCurrentIP() {
+      document.getElementById('current-ip').textContent = currentIP || '...';
+      document.getElementById('ip-location').textContent = currentLoc ? 'Location: '+currentLoc : '';
+    }
+    function renderHistory() {
+      const list = document.getElementById('history-list');
+      list.innerHTML = '';
+      if (history.length === 0) {
+        document.getElementById('history-empty').style.display = '';
+        return;
+      }
+      document.getElementById('history-empty').style.display = 'none';
+      history.slice().reverse().forEach((entry, idx) => {
+        const li = document.createElement('li');
+        li.className = "flex justify-between items-center border-b last:border-none py-2 px-2";
+        li.innerHTML =
+          `<span class="font-mono font-medium text-gray-800">${entry.ip}</span>
+           <span class="text-xs text-gray-500 ml-3">${entry.time}</span>`;
+        list.appendChild(li);
+      });
+    }
+    // Detect Mobile OS
+    function getMobileOS() {
+      const ua = navigator.userAgent || navigator.vendor || window.opera;
+      if (/android/i.test(ua)) return 'android';
+      if (/iPad|iPhone|iPod/.test(ua) && !window.MSStream) return 'ios';
+      return '';
+    }
+    function boldMsg(msg) {
+      return `<span class="font-semibold text-yellow-700">${msg}</span>`;
+    }
+    // Action handlers
+    async function changeIP(simulate=false, skipAirplaneGuide=false) {
+      // Try to open Airplane Mode settings, fallback to guidance
+      if (!skipAirplaneGuide) {
+        const os = getMobileOS();
+        let tried = false;
+        let msgArr = [];
+        let deviceMsg = '';
+        if (os === 'android') {
+          deviceMsg = boldMsg('Detected Android device');
+          tried = true;
+          window.location.href = "android-app://com.android.settings/airplane_mode";
+          msgArr.push('We attempted to open your <b>Airplane Mode</b> settings (you may see a prompt).');
+          msgArr.push('If nothing happens, try navigating manually: <b>Settings &gt; Network &amp; Internet &gt; Airplane mode</b>.');
+        } else if (os === 'ios') {
+          deviceMsg = boldMsg('Detected iOS device');
+          tried = true;
+          window.location.href = "App-Prefs:root=AIRPLANE_MODE";
+          msgArr.push('We attempted to open your <b>Airplane Mode</b> settings (this may work only in some iOS versions).');
+          msgArr.push('If nothing happens, swipe down and tap the <i class="fas fa-plane"></i> <b>airplane icon</b>, or go to <b>Settings &gt; Airplane Mode</b>.');
+        } else {
+          deviceMsg = boldMsg('Non-mobile or Unknown device');
+          msgArr.push('Automatic opening of Airplane Mode settings works only on Android/iOS mobile browsers.');
+          msgArr.push('On desktop, this feature only simulates an IP change.');
+        }
+        document.getElementById('modal-airplane-device').innerHTML = deviceMsg;
+        document.getElementById('modal-airplane-message').innerHTML = msgArr.map(m=>`<li>${m}</li>`).join('');
+        document.getElementById('modal-airplane').classList.remove('hidden');
+        await actuallyChangeIP();
+      } else {
+        await actuallyChangeIP();
+      }
+    }
+
+    async function actuallyChangeIP() {
+      const oldIP = currentIP;
+      document.getElementById('change-ip-btn').disabled = true;
+      document.getElementById('change-ip-btn').innerHTML =
+        `<i class="fas fa-circle-notch fa-spin mr-2"></i> Changing...`;
+      let newIP = oldIP;
+      let newLoc = currentLoc;
+      let tries = 0;
+      while (tries < 3 && newIP === oldIP) {
+        const res = await fetchIP();
+        newIP = res.ip;
+        newLoc = res.location;
+        tries++;
+        await new Promise(resolve=>setTimeout(resolve, 400));
+      }
+      if (newIP !== oldIP && oldIP && oldIP !== 'Unavailable') {
+        history.push({ip: oldIP, time: nowTimestamp()});
+        if (history.length > 50) history = history.slice(-50);
+        saveHistory(history);
+        renderHistory();
+      }
+      currentIP = newIP;
+      currentLoc = newLoc;
+      renderCurrentIP();
+      document.getElementById('change-ip-btn').innerHTML =
+        `<i class="fas fa-random mr-2"></i> Change IP Address`;
+      document.getElementById('change-ip-btn').disabled = false;
+    }
+
+    // Initializer
+    async function startup() {
+      history = loadHistory();
+      renderHistory();
+      document.getElementById('current-ip').textContent = '...';
+      const r = await fetchIP();
+      currentIP = r.ip;
+      currentLoc = r.location;
+      renderCurrentIP();
+    }
+    // Button listeners
+    document.getElementById('change-ip-btn').addEventListener('click', ()=>{
+      changeIP();
+    });
+    document.getElementById('refresh-ip-btn').addEventListener('click', async ()=>{
+      document.getElementById('refresh-ip-btn').innerHTML = `<i class="fas fa-sync-alt fa-spin"></i>`;
+      const r = await fetchIP();
+      currentIP = r.ip;
+      currentLoc = r.location;
+      renderCurrentIP();
+      document.getElementById('refresh-ip-btn').innerHTML = `<i class="fas fa-sync-alt"></i>`;
+    });
+    document.getElementById('delete-history-btn').addEventListener('click', ()=>{
+      if (confirm("Are you sure you want to delete all history?")) {
+        localStorage.removeItem(STORAGE_KEY);
+        history = [];
+        renderHistory();
+      }
+    });
+    document.getElementById('exit-btn').addEventListener('click', ()=>{
+      window.location.href="about:blank";
+    });
+
+    // Startup
+    window.addEventListener('DOMContentLoaded', startup);
+
+    // For PDF export: expand all content, hide lists' overflow
+    window.onbeforeprint = () => {
+      document.querySelectorAll('.scrollbar-hide').forEach(e=>e.style.overflow='visible');
+    };
+    window.onafterprint = () => {
+      document.querySelectorAll('.scrollbar-hide').forEach(e=>e.style.overflow='auto');
+    };
+  </script>
+</body>
+</html>
