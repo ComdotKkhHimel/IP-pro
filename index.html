@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>IP Changer & History - Real Time IP Checker</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!-- Tailwind CSS v2.2.19 -->
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+  <!-- Font Awesome v6.5.2 -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.5.2/css/all.min.css">
+  <!-- Google Fonts: Roboto -->
+  <link href="https://cdn.jsdelivr.net/npm/@google/fonts@3.3.1/roboto.css" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Roboto', Arial, sans-serif;
+      background-color: #fafafa;
+      color: #222;
+      /* For PDF export: Avoid hidden scrollbars */
+      overflow-y: unset !important;
+    }
+    /* Material shadow */
+    .md-shadow {
+      box-shadow: 0 1px 6px rgba(60, 60, 60, 0.15),0 1.5px 5px rgba(81, 81, 81, 0.06);
+    }
+    /* Hide scrollbar for history list when printed/exported */
+    @media print {
+      .scrollbar-hide {
+        overflow: visible !important;
+        max-height: unset !important;
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- Header -->
+  <header class="bg-yellow-400 md-shadow py-5 px-4 flex items-center justify-between">
+    <div class="flex items-center space-x-2">
+      <i class="fas fa-random text-2xl text-gray-800"></i>
+      <span class="text-2xl font-bold text-gray-900 tracking-wide">IP Changer + History</span>
+    </div>
+    <nav class="flex items-center space-x-3">
+      <button id="delete-history-btn" class="bg-white hover:bg-yellow-100 text-yellow-600 px-3 py-1 rounded transition-colors duration-150 flex items-center text-sm focus:outline-none">
+        <i class="fas fa-trash-alt mr-1"></i> Delete History
+      </button>
+      <button id="exit-btn" class="bg-white hover:bg-yellow-100 text-yellow-700 px-3 py-1 rounded transition-colors duration-150 flex items-center text-sm focus:outline-none">
+        <i class="fas fa-sign-out-alt mr-1"></i> Exit
+      </button>
+    </nav>
+  </header>
+
+  <!-- Main content -->
+  <main class="max-w-2xl mx-auto mt-8 px-4 mb-8">
+    <!-- Info card -->
+    <section class="bg-white rounded-lg md-shadow p-5 mb-7">
+      <h2 class="text-lg font-semibold mb-2 flex items-center text-gray-800">
+        <i class="fas fa-info-circle mr-2 text-yellow-500"></i>
+        How IP Changing Works
+      </h2>
+      <p class="text-gray-700 text-sm leading-relaxed">
+        Changing your IP address on the web typically requires using a <b>VPN</b>, <b>proxy</b> service, or reconnecting to your mobile network. This website lets you <span class="underline">check your IP in real time</span> and simulate IP changes, tracking your IP change history.<br>
+        <span class="text-yellow-600"><i class="fas fa-exclamation-circle"></i></span> <b>Note:</b> Since browsers do not allow direct IP changes, the <b>“Change IP Address”</b> button below will <span class="italic">simulate</span> an IP change by fetching a new IP from a public API, similar to turning airplane mode on/off in the Android app.<br>
+        <b>For real privacy, use commercial VPN or proxy services.</b>
+      </p>
+    </section>
+    <!-- Current IP -->
+    <section class="bg-white rounded-lg md-shadow p-6 flex flex-col items-start mb-7">
+      <h2 class="text-md font-medium text-gray-700 mb-2 flex items-center">
+        <i class="fas fa-globe mr-2 text-yellow-400"></i> Current IP:
+      </h2>
+      <div class="w-full flex items-center justify-between">
+        <span id="current-ip" class="text-3xl font-mono font-bold text-gray-900 tracking-wide select-all">...</span>
+        <button id="refresh-ip-btn" title="Refresh IP" class="ml-3 p-2 rounded-full bg-yellow-100 text-yellow-800 hover:bg-yellow-200 transition-colors">
+          <i class="fas fa-sync-alt"></i>
+        </button>
+      </div>
+      <div id="ip-location" class="text-sm text-gray-600 mt-2"></div>
+      <button id="change-ip-btn" class="mt-6 px-5 py-2 bg-yellow-400 text-gray-900 rounded font-semibold shadow hover:bg-yellow-300 transition-colors text-lg flex items-center focus:outline-none">
+        <i class="fas fa-random mr-2 text-lg"></i> Change IP Address
+      </button>
+    </section>
+    <!-- IP History -->
+    <section class="bg-white rounded-lg md-shadow p-6">
+      <h2 class="text-md font-medium text-gray-700 mb-4 flex items-center">
+        <i class="fas fa-history mr-2 text-yellow-400"></i> IP Address Change History
+      </h2>
+      <div id="history-empty" class="text-gray-400 text-sm mb-4" style="display: none;">
+        No IP changes yet. Click <span class="font-semibold">Change IP Address</span> to start tracking!
+      </div>
+      <ol id="history-list" class="scrollbar-hide max-h-96 overflow-auto" reversed>
+        <!-- History entries injected by JS -->
+      </ol>
+      <div class="mt-2 text-xs text-gray-400">
+        List contains up to 50 recent entries. Data is stored in your browser only.
+      </div>
+    </section>
+  </main>
+
+  <!-- Footer -->
+  <footer class="mt-8 mb-4 text-gray-400 text-xs text-center">
+    &copy; 2024 IP Changer + History &ndash; Web Version Demo | Inspired by IP Changer History Android App.<br>
+    Icons by <a href="https://fontawesome.com/" target="_blank" class="underline hover:text-yellow-700">Font Awesome</a>. UI by <a href="https://tailwindcss.com/" target="_blank" class="underline hover:text-yellow-700">Tailwind CSS</a>.
+  </footer>
+
+  <script>
+    // Utilities
+    const STORAGE_KEY = 'ip_changer_history';
+    // App State
+    let history = [];
+    let currentIP = '';
+    let currentLoc = '';
+
+    // Helpers
+    function loadHistory() {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (!raw) return [];
+      try {
+        return JSON.parse(raw) || [];
+      } catch(e) { return []; }
+    }
+    function saveHistory(histArr) {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(histArr.slice(0,50)));
+    }
+    function nowTimestamp() {
+      const now = new Date();
+      return now.getFullYear() + '/' +
+        String(now.getMonth()+1).padStart(2,'0') + '/' +
+        String(now.getDate()).padStart(2,'0') + ' ' +
+        String(now.getHours()).padStart(2,'0') + ':' +
+        String(now.getMinutes()).padStart(2,'0') + ':' +
+        String(now.getSeconds()).padStart(2,'0');
+    }
+    // IP fetch via ipinfo.io
+    async function fetchIP() {
+      try {
+        const resp = await fetch("https://ipinfo.io/json", {cache:"no-store"});
+        const data = await resp.json();
+        return {
+          ip: data.ip || 'Unknown',
+          location: [
+            data.city || '',
+            data.region || '',
+            data.country || ''
+          ].filter(Boolean).join(', ')
+        };
+      } catch(e) {
+        return { ip: 'Unavailable', location: ''};
+      }
+    }
+    // Renderers
+    function renderCurrentIP() {
+      document.getElementById('current-ip').textContent = currentIP || '...';
+      document.getElementById('ip-location').textContent = currentLoc ? 'Location: '+currentLoc : '';
+    }
+    function renderHistory() {
+      const list = document.getElementById('history-list');
+      list.innerHTML = '';
+      if (history.length === 0) {
+        document.getElementById('history-empty').style.display = '';
+        return;
+      }
+      document.getElementById('history-empty').style.display = 'none';
+      history.slice().reverse().forEach((entry, idx) => {
+        const li = document.createElement('li');
+        li.className = "flex justify-between items-center border-b last:border-none py-2 px-2";
+        li.innerHTML =
+          `<span class="font-mono font-medium text-gray-800">${entry.ip}</span>
+           <span class="text-xs text-gray-500 ml-3">${entry.time}</span>`;
+        list.appendChild(li);
+      });
+    }
+    // Action handlers
+    async function changeIP(simulate=false) {
+      const oldIP = currentIP;
+      // Simulate delay
+      document.getElementById('change-ip-btn').disabled = true;
+      document.getElementById('change-ip-btn').innerHTML =
+        `<i class="fas fa-circle-notch fa-spin mr-2"></i> Changing...`;
+      let newIP = oldIP;
+      let newLoc = currentLoc;
+      // Fetch a new IP (simulate IP change as browser can't do real IP change)
+      let tries = 0;
+      while (tries < 3 && newIP === oldIP) {
+        const res = await fetchIP();
+        newIP = res.ip;
+        newLoc = res.location;
+        // "Change" if possible—note this is simulated as you can't force a new IP.
+        tries++;
+        if (simulate) break;
+        await new Promise(resolve=>setTimeout(resolve, 600));
+      }
+      if (newIP !== oldIP && oldIP && oldIP !== 'Unavailable') {
+        // Save to history
+        history.push({ip: oldIP, time: nowTimestamp()});
+        if (history.length > 50) history = history.slice(-50);
+        saveHistory(history);
+        renderHistory();
+      }
+      currentIP = newIP;
+      currentLoc = newLoc;
+      renderCurrentIP();
+      document.getElementById('change-ip-btn').innerHTML =
+        `<i class="fas fa-random mr-2"></i> Change IP Address`;
+      document.getElementById('change-ip-btn').disabled = false;
+    }
+    // Initializer
+    async function startup() {
+      history = loadHistory();
+      renderHistory();
+      // Fetch and display current IP
+      document.getElementById('current-ip').textContent = '...';
+      const r = await fetchIP();
+      currentIP = r.ip;
+      currentLoc = r.location;
+      renderCurrentIP();
+    }
+    // Button listeners
+    document.getElementById('change-ip-btn').addEventListener('click', ()=>{
+      changeIP();
+    });
+    document.getElementById('refresh-ip-btn').addEventListener('click', async ()=>{
+      // Just refetch from service but do not log as history
+      document.getElementById('refresh-ip-btn').innerHTML = `<i class="fas fa-sync-alt fa-spin"></i>`;
+      const r = await fetchIP();
+      currentIP = r.ip;
+      currentLoc = r.location;
+      renderCurrentIP();
+      document.getElementById('refresh-ip-btn').innerHTML = `<i class="fas fa-sync-alt"></i>`;
+    });
+    document.getElementById('delete-history-btn').addEventListener('click', ()=>{
+      if (confirm("Are you sure you want to delete all history?")) {
+        localStorage.removeItem(STORAGE_KEY);
+        history = [];
+        renderHistory();
+      }
+    });
+    document.getElementById('exit-btn').addEventListener('click', ()=>{
+      // Redirect to a blank page
+      window.location.href="about:blank";
+    });
+
+    // Startup
+    window.addEventListener('DOMContentLoaded', startup);
+
+    // For PDF export: expand all content, hide lists' overflow
+    window.onbeforeprint = () => {
+      document.querySelectorAll('.scrollbar-hide').forEach(e=>e.style.overflow='visible');
+    };
+    window.onafterprint = () => {
+      document.querySelectorAll('.scrollbar-hide').forEach(e=>e.style.overflow='auto');
+    };
+  </script>
+</body>
+</html>
+
