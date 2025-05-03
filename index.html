@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>IP Monitor</title>
+  <style>
+    body {
+      font-family: monospace;
+      background-color: #000;
+      color: #0f0;
+      text-align: center;
+      margin: 0;
+      padding: 0;
+      overflow-x: hidden;
+    }
+    h1 {
+      font-size: 48px;
+      color: #0f0;
+      margin-top: 30px;
+      text-shadow: 0 0 5px #0f0;
+    }
+    .ip-label {
+      font-weight: bold;
+      margin-top: 20px;
+      font-size: 48px;
+      text-shadow: 0 0 3px #0f0;
+    }
+    .ip-value {
+      font-size: 48px;
+      color: #0f0;
+      margin-bottom: 10px;
+      text-shadow: 0 0 5px #0f0;
+    }
+    .matrix {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: -1;
+      background: black;
+    }
+    canvas {
+      display: block;
+    }
+  </style>
+</head>
+<body>
+  <div class="matrix">
+    <canvas id="matrix"></canvas>
+  </div>
+
+  <h1>Real-Time IP Monitor</h1>
+    
+  <p class="ip-label">Public IP:</p>
+  <div id="public-ip" class="ip-value">Fetching...</div>
+
+  <p class="ip-label">Local IP:</p>
+  <div id="local-ip" class="ip-value">Fetching...</div>
+
+  <div id="public-ip-history"></div>
+    </div>
+
+    <div class="history-box">
+      <div class="history-title"></div>
+      <div id="local-ip-history"></div>
+    </div>
+  </div>
+
+  <script>
+    let lastPublicIP = "";
+    let lastLocalIP = "";
+
+        async function getPublicIP() {
+      try {
+        const res = await fetch('https://api64.ipify.org?format=json');
+        const data = await res.json();
+        const ip = data.ip;
+        document.getElementById('public-ip').textContent = ip;
+        lastPublicIP = ip;
+      } catch (error) {
+        document.getElementById('public-ip').textContent = "Error fetching public IP";
+      }
+    }
+
+    function getLocalIP() {
+      const rtc = new RTCPeerConnection({iceServers:[]});
+      rtc.createDataChannel('');
+      rtc.createOffer().then(offer => rtc.setLocalDescription(offer));
+      rtc.onicecandidate = event => {
+        if (event && event.candidate && event.candidate.candidate) {
+          const ipMatch = event.candidate.candidate.match(/([0-9]{1,3}(\.[0-9]{1,3}){3})/);
+          if (ipMatch) {
+            const ip = ipMatch[1];
+            document.getElementById('local-ip').textContent = ip;
+            lastLocalIP = ip;
+            rtc.onicecandidate = null;
+          }
+        }
+      };
+    }
+
+    // Matrix background effect
+    const canvas = document.getElementById("matrix");
+    const ctx = canvas.getContext("2d");
+
+    canvas.height = window.innerHeight;
+    canvas.width = window.innerWidth;
+
+    const letters = "01";
+    const fontSize = 14;
+    const columns = canvas.width / fontSize;
+    const drops = Array(Math.floor(columns)).fill(1);
+
+    function drawMatrix() {
+      ctx.fillStyle = "rgba(0, 0, 0, 0.05)";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.fillStyle = "#0f0";
+      ctx.font = fontSize + "px monospace";
+      for (let i = 0; i < drops.length; i++) {
+        const text = letters.charAt(Math.floor(Math.random() * letters.length));
+        ctx.fillText(text, i * fontSize, drops[i] * fontSize);
+        if (drops[i] * fontSize > canvas.height && Math.random() > 0.975) {
+          drops[i] = 0;
+        }
+        drops[i]++;
+      }
+    }
+    setInterval(drawMatrix, 33);
+
+    // IP fetching
+    getPublicIP();
+    getLocalIP();
+    setInterval(getPublicIP, 5000);
+    setInterval(getLocalIP, 5000);
+  </script>
+
+  <div style="position:fixed;bottom:10px;width:100%;text-align:center;color:#0f0;font-family:monospace;font-size: 48px;text-shadow:0 0 3px #0f0;">
+    © ComDotKKH
+  </div>
+</body>
+</html>
