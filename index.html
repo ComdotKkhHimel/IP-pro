@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Facebook Account Status Checker</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        .nav-pills .nav-link.active { font-weight: bold; }
+        .tab-content { padding: 20px 0; }
+        .active-badge { background-color: #198754; }
+        .suspended-badge { background-color: #dc3545; }
+        .duplicate-badge { background-color: #ffc107; color: #000; }
+        .account-card { transition: transform 0.2s; margin-bottom: 15px; }
+        .account-card:hover { transform: translateY(-3px); }
+        #duplicateAccounts .list-group-item { background-color: #fff8e1; }
+    </style>
+</head>
+<body>
+    <div class="container py-4">
+        <h1 class="text-center mb-4">Facebook Account Status Checker</h1>
+        
+        <div class="card shadow mb-4">
+            <div class="card-body">
+                <h5 class="card-title">Enter Facebook UIDs</h5>
+                <textarea class="form-control mb-3" id="uidInput" rows="5" 
+                    placeholder="Enter UIDs separated by commas or new lines (e.g. 1000123456789, 1000987654321)"></textarea>
+                <div class="d-flex justify-content-between">
+                    <button class="btn btn-primary" id="checkBtn">
+                        <span class="spinner-border spinner-border-sm d-none" id="spinner"></span>
+                        Check Account Status
+                    </button>
+                    <button class="btn btn-outline-danger" id="clearBtn">Clear All</button>
+                </div>
+            </div>
+        </div>
+
+        <ul class="nav nav-pills mb-3" id="statusTabs" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" id="all-tab" data-bs-toggle="pill" data-bs-target="#allAccounts" type="button">
+                    All Accounts <span class="badge bg-secondary ms-1" id="allCount">0</span>
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="active-tab" data-bs-toggle="pill" data-bs-target="#activeAccounts" type="button">
+                    Active <span class="badge active-badge ms-1" id="activeCount">0</span>
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="suspended-tab" data-bs-toggle="pill" data-bs-target="#suspendedAccounts" type="button">
+                    Suspended <span class="badge suspended-badge ms-1" id="suspendedCount">0</span>
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="duplicate-tab" data-bs-toggle="pill" data-bs-target="#duplicateAccounts" type="button">
+                    Duplicates <span class="badge duplicate-badge ms-1" id="duplicateCount">0</span>
+                </button>
+            </li>
+        </ul>
+
+        <div class="tab-content" id="statusTabsContent">
+            <div class="tab-pane fade show active" id="allAccounts" role="tabpanel">
+                <div class="row" id="allAccountsContainer"></div>
+            </div>
+            <div class="tab-pane fade" id="activeAccounts" role="tabpanel">
+                <div class="row" id="activeAccountsContainer"></div>
+            </div>
+            <div class="tab-pane fade" id="suspendedAccounts" role="tabpanel">
+                <div class="row" id="suspendedAccountsContainer"></div>
+            </div>
+            <div class="tab-pane fade" id="duplicateAccounts" role="tabpanel">
+                <div class="list-group" id="duplicateAccountsContainer"></div>
+            </div>
+        </div>
+
+        <div class="card mt-4">
+            <div class="card-body">
+                <h5 class="card-title">Export Results</h5>
+                <button class="btn btn-success me-2" id="exportCSV">
+                    <i class="bi bi-file-earmark-excel"></i> Export as CSV
+                </button>
+                <button class="btn btn-primary me-2" id="exportJSON">
+                    <i class="bi bi-code-square"></i> Export as JSON
+                </button>
+                <button class="btn btn-dark" id="exportTXT">
+                    <i class="bi bi-file-earmark-text"></i> Export as TXT
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
